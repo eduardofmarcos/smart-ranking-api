@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { exception } from 'console';
 import { CreatePlayerDTO } from './dtos/create-player.dto';
 import { Player } from './interfaces/player.interface';
 
@@ -8,30 +9,44 @@ export class PlayersService {
   private players: Player[] = [];
 
   private readonly logger = new Logger(PlayersService.name);
-  async createUpdatePlayer(createPlayerDTO: CreatePlayerDTO): Promise<void> {
+  createUpdatePlayer(createPlayerDTO: CreatePlayerDTO): void {
     const { email } = createPlayerDTO;
 
     const findPlayer = this.players.find((el) => {
       return email === el.email;
     });
     if (findPlayer) {
-      await this.updatePlayer(findPlayer, createPlayerDTO);
+      this.updatePlayer(findPlayer, createPlayerDTO);
     } else {
-      await this.create(createPlayerDTO);
+      this.create(createPlayerDTO);
     }
   }
 
-  async getPlayers(): Promise<Player[]> {
-    return await this.players;
+  getPlayers(): Player[] {
+    return this.players;
   }
 
-  async getPlayer(email: string): Promise<Player> {
+  getPlayer(email: string): Player {
     const player = this.players.find((el) => {
-      el.name == email;
+      return el.email === email;
     });
 
-    if (player != undefined) {
-      return player;
+    if (!player) {
+      throw new NotFoundException(`Player with email: ${email} not found!`);
+    }
+
+    return player;
+  }
+
+  deletePlayer(email: string): void {
+    const indexOfPlayerToDelete = this.players.findIndex(
+      (el) => el.email === email,
+    );
+    console.log(indexOfPlayerToDelete);
+    if (indexOfPlayerToDelete !== -1) {
+      this.delete(indexOfPlayerToDelete);
+    } else {
+      throw new NotFoundException(`Player with email: ${email} not found!`);
     }
   }
 
@@ -54,5 +69,9 @@ export class PlayersService {
 
   private updatePlayer(player: Player, createPlayerDTO: CreatePlayerDTO): void {
     player.name = createPlayerDTO.name;
+  }
+
+  private delete(index: number): void {
+    this.players.splice(index, 1);
   }
 }
