@@ -1,31 +1,24 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
-import { CreatePlayerDTO } from './dtos/create-player.dto'
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { CreatePlayerDTO } from './dtos/create-player.dto';
+import { PlayersService } from './players.service';
+import { Player } from './interfaces/player.interface';
 
 @Controller('/api/v1/players')
 export class PlayersController {
+  //Injecao de dependencia
+  constructor(private readonly playerservice: PlayersService) {}
+  @Get()
+  async getPlayers(): Promise<Player[]> {
+    return this.playerservice.getPlayers();
+  }
 
-    @Get()
-    async getPlayers(){
-        return JSON.stringify({
-            resposta: "ok"
-        })
-    }
+//   @Get('/email')
+//   async getAllPlayer(@Param email): Promise<Player> {
+//     return this.playerservice.getPlayer(email);
+//   }
 
-    @Post()
-    async createUpdatePlayers(
-
-        @Body() createPlayerDTO : CreatePlayerDTO
-
-    ){
-
-
-
-        return JSON.stringify({
-            data:{
-                name: createPlayerDTO.name
-            }
-        })
-    }
-
-
+  @Post()
+  async createUpdatePlayers(@Body() createPlayerDTO: CreatePlayerDTO) {
+    await this.playerservice.createUpdatePlayer(createPlayerDTO);
+  }
 }
