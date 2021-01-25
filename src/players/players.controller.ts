@@ -3,28 +3,31 @@ import { CreatePlayerDTO } from './dtos/create-player.dto';
 import { PlayersService } from './players.service';
 import { Player } from './interfaces/player.interface';
 import { query } from 'express';
+import { Observable } from 'rxjs';
 
 @Controller('/api/v1/players/')
 export class PlayersController {
   //Injecao de dependencia
   constructor(private readonly playerservice: PlayersService) {}
   @Get()
-  getPlayers(@Query('email') email: string): Player[] | Player {
+  async getPlayers(@Query('email') email: string): Promise<Player | Player[]> {
     if (email) {
-      return this.playerservice.getPlayer(email);
+      return await this.playerservice.getPlayer(email)
     } else {
-      return this.playerservice.getPlayers();
+      return await this.playerservice.getAllPlayers();
     }
   }
 
   @Post()
-  createUpdatePlayers(@Body() createPlayerDTO: CreatePlayerDTO) {
-    this.playerservice.createUpdatePlayer(createPlayerDTO);
+  createPlayers(@Body() createPlayerDTO: CreatePlayerDTO) {
+    const createdUpdatedPlayer = this.playerservice.createUpdatePlayerModel(
+      createPlayerDTO,
+    );
+    return createdUpdatedPlayer;
   }
 
-
-  @Delete()
-  deletePlayer(@Query('email') email: string): void {
-    this.playerservice.deletePlayer(email);
-  }
+    @Delete()
+    async deletePlayer(@Query('email') email: string): Promise<void> {
+      await this.playerservice.deletePlayer(email);
+    }
 }

@@ -1,77 +1,82 @@
+import { Model } from 'mongoose';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { exception } from 'console';
+import { InjectModel } from '@nestjs/mongoose';
 import { CreatePlayerDTO } from './dtos/create-player.dto';
 import { Player } from './interfaces/player.interface';
 
 //Regra de negocio
 @Injectable()
 export class PlayersService {
-  private players: Player[] = [];
+  constructor(
+    @InjectModel('Player') private readonly PlayerModel: Model<Player>,
+  ) {}
 
-  private readonly logger = new Logger(PlayersService.name);
-  createUpdatePlayer(createPlayerDTO: CreatePlayerDTO): void {
-    const { email } = createPlayerDTO;
+  //Creating or Updating a Player
+  async createUpdatePlayerModel(
+    createPlayerDTO: CreatePlayerDTO,
+  ): Promise<Player> {
+    //findall
+    const playerToCreateOrUpdate = await this.PlayerModel.findOne({
+      email: createPlayerDTO.email,
+    }).exec();
 
-    const findPlayer = this.players.find((el) => {
-      return email === el.email;
-    });
-    if (findPlayer) {
-      this.updatePlayer(findPlayer, createPlayerDTO);
+    if (playerToCreateOrUpdate) {
+      return await this.updatePlayer(playerToCreateOrUpdate, createPlayerDTO);
     } else {
-      this.create(createPlayerDTO);
+      return await this.createPlayer(createPlayerDTO);
     }
   }
 
-  getPlayers(): Player[] {
-    return this.players;
+  //Getting all Players
+  async getAllPlayers(): Promise<Player[]> {
+    return await this.findAll();
   }
 
-  getPlayer(email: string): Player {
-    const player = this.players.find((el) => {
-      return el.email === email;
-    });
-
-    if (!player) {
-      throw new NotFoundException(`Player with email: ${email} not found!`);
-    }
-
-    return player;
+  //Getting single Player by email
+  async getPlayer(email: string) {
+    return await this.findSinglePlayer(email);
   }
 
-  deletePlayer(email: string): void {
-    const indexOfPlayerToDelete = this.players.findIndex(
-      (el) => el.email === email,
-    );
-    console.log(indexOfPlayerToDelete);
-    if (indexOfPlayerToDelete !== -1) {
-      this.delete(indexOfPlayerToDelete);
+  // Deleting a Player
+  async deletePlayer(email: string): Promise<void> {
+    await this.deleteSinglePlayer(email);
+  }
+
+  // *****************************************************
+
+  private async findAll(): Promise<Player[]> {
+    const players = await this.PlayerModel.find().exec();
+    return players;
+  }
+
+  private async findSinglePlayer(email: string): Promise<Player> {
+    const foundPlayer = await this.PlayerModel.findOne({ email: email });
+    if (!foundPlayer) {
+      throw new NotFoundException('Player with this email not found!');
     } else {
-      throw new NotFoundException(`Player with email: ${email} not found!`);
+      return foundPlayer;
     }
   }
 
-  //desacoplado
-  private create(createPlayerDTO: CreatePlayerDTO): void {
-    const { name, email, phoneNumber } = createPlayerDTO;
-
-    const player: Player = {
-      _id: '1234234',
-      phoneNumber,
-      name,
-      email,
-      ranking: 'A',
-      rankingPosition: 1,
-      urlPhoto: 'www.pic.com',
-    };
-    // this.logger.log(`Player: ${JSON.stringify(player)}`);
-    this.players.push(player);
+  private async createPlayer(
+    createPlayerDTO: CreatePlayerDTO,
+  ): Promise<Player> {
+    const createdPlayer = new this.PlayerModel(createPlayerDTO);
+    return createdPlayer.save();
   }
 
-  private updatePlayer(player: Player, createPlayerDTO: CreatePlayerDTO): void {
-    player.name = createPlayerDTO.name;
+  private async updatePlayer(
+    player: Player,
+    createPlayerDTO: CreatePlayerDTO,
+  ): Promise<Player> {
+    const updatedPlayer = await this.PlayerModel.findOneAndUpdate(
+      { email: player.email },
+      { $set: createPlayerDTO },
+    ).exec();
+    return updatedPlayer;
   }
 
-  private delete(index: number): void {
-    this.players.splice(index, 1);
+  private async deleteSinglePlayer(email: string): Promise<void> {
+    await this.PlayerModel.findOneAndRemove({ email: email });
   }
 }
