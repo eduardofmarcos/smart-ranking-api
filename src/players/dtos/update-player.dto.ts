@@ -1,11 +1,9 @@
-import { IsNotEmpty, IsEmail } from 'class-validator';
+import { IsNotEmpty } from 'class-validator';
 
 //what comes in request and will traffic in all app, there is no behavior
-export class CreatePlayerDTO {
+export class UpdatePlayerDTO {
   @IsNotEmpty()
   readonly phoneNumber: string;
-  @IsEmail()
-  readonly email: string;
   @IsNotEmpty()
   readonly name: string;
 }

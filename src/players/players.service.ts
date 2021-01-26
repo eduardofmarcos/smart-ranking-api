@@ -1,8 +1,16 @@
 import { Model } from 'mongoose';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { CreatePlayerDTO } from './dtos/create-player.dto';
 import { Player } from './interfaces/player.interface';
+import { UpdatePlayerDTO } from './dtos/update-player.dto';
+import { exec } from 'child_process';
+
+/********************************************************************************************/
 
 //Regra de negocio
 @Injectable()
@@ -11,20 +19,17 @@ export class PlayersService {
     @InjectModel('Player') private readonly PlayerModel: Model<Player>,
   ) {}
 
-  //Creating or Updating a Player
-  async createUpdatePlayerModel(
-    createPlayerDTO: CreatePlayerDTO,
-  ): Promise<Player> {
-    //findall
-    const playerToCreateOrUpdate = await this.PlayerModel.findOne({
-      email: createPlayerDTO.email,
-    }).exec();
+  //Creating a Player
+  async createAPlayer(createPlayerDTO: CreatePlayerDTO): Promise<Player> {
+    return await this.createPlayer(createPlayerDTO);
+  }
 
-    if (playerToCreateOrUpdate) {
-      return await this.updatePlayer(playerToCreateOrUpdate, createPlayerDTO);
-    } else {
-      return await this.createPlayer(createPlayerDTO);
-    }
+  //Updating a Player
+  async updateAPlayer(
+    _id: string,
+    updatePlayerDTO: UpdatePlayerDTO,
+  ): Promise<Player> {
+    return await this.updatePlayer(_id, updatePlayerDTO);
   }
 
   //Getting all Players
@@ -33,8 +38,8 @@ export class PlayersService {
   }
 
   //Getting single Player by email
-  async getPlayer(email: string) {
-    return await this.findSinglePlayer(email);
+  async getPlayer(_id: string) {
+    return await this.findSinglePlayer(_id);
   }
 
   // Deleting a Player
@@ -42,17 +47,17 @@ export class PlayersService {
     await this.deleteSinglePlayer(email);
   }
 
-  // *****************************************************
+  /********************************************************************************************/
 
   private async findAll(): Promise<Player[]> {
     const players = await this.PlayerModel.find().exec();
     return players;
   }
 
-  private async findSinglePlayer(email: string): Promise<Player> {
-    const foundPlayer = await this.PlayerModel.findOne({ email: email });
+  private async findSinglePlayer(_id: string): Promise<Player> {
+    const foundPlayer = await this.PlayerModel.findById(_id);
     if (!foundPlayer) {
-      throw new NotFoundException('Player with this email not found!');
+      throw new NotFoundException('Player with this _id not found!');
     } else {
       return foundPlayer;
     }
@@ -61,22 +66,35 @@ export class PlayersService {
   private async createPlayer(
     createPlayerDTO: CreatePlayerDTO,
   ): Promise<Player> {
+    const emailToCheck = await this.PlayerModel.findOne({
+      email: createPlayerDTO.email,
+    });
+    if (emailToCheck) {
+      throw new BadRequestException('Not possible to create your account');
+    }
     const createdPlayer = new this.PlayerModel(createPlayerDTO);
     return createdPlayer.save();
   }
 
   private async updatePlayer(
-    player: Player,
-    createPlayerDTO: CreatePlayerDTO,
+    _id: string,
+    updatePlayerDTO: UpdatePlayerDTO,
   ): Promise<Player> {
+    const foundPlayer = await this.PlayerModel.findById(_id);
+    if (!foundPlayer) {
+      throw new NotFoundException('Player with this _id not found!');
+    }
     const updatedPlayer = await this.PlayerModel.findOneAndUpdate(
-      { email: player.email },
-      { $set: createPlayerDTO },
+      { _id: _id },
+      { name: updatePlayerDTO.name, phoneNumber: updatePlayerDTO.phoneNumber },
+      { new: true },
     ).exec();
     return updatedPlayer;
   }
 
-  private async deleteSinglePlayer(email: string): Promise<void> {
-    await this.PlayerModel.findOneAndRemove({ email: email });
+  private async deleteSinglePlayer(_id: string): Promise<void> {
+    await this.PlayerModel.findOneAndRemove({ _id: _id });
   }
 }
+
+/********************************************************************************************/
