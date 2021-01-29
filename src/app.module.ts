@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PlayersModule } from './players/players.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CategoriesModule } from './categories/categories.module';
+import { PlayersService } from './players/players.service';
 
 @Module({
   imports: [

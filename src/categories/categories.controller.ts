@@ -1,9 +1,17 @@
-import { Controller, Post, UsePipes, ValidationPipe, Body, Get, Param, Put } from '@nestjs/common';
-import { CreateCategoryDTO} from './dtos/CreateCategory.dto';
-import { Category } from './interfaces/category.interface'
-import {CategoriesService} from './categories.service'
-import {UpdateCategoryDTO} from './dtos/UpdateCategory.dto'
-
+import {
+  Controller,
+  Post,
+  UsePipes,
+  ValidationPipe,
+  Body,
+  Get,
+  Param,
+  Put,
+} from '@nestjs/common';
+import { CreateCategoryDTO } from './dtos/CreateCategory.dto';
+import { Category } from './interfaces/category.interface';
+import { CategoriesService } from './categories.service';
+import { UpdateCategoryDTO } from './dtos/UpdateCategory.dto';
 
 @Controller('api/v1/categories')
 export class CategoriesController {
@@ -12,24 +20,33 @@ export class CategoriesController {
   @Post()
   @UsePipes(ValidationPipe)
   async createCategory(
-      @Body()createCategoryDTO: CreateCategoryDTO) : Promise<Category>{
-        return await this.categoriesService.createCategory(createCategoryDTO)
-      }
+    @Body() createCategoryDTO: CreateCategoryDTO,
+  ): Promise<Category> {
+    return await this.categoriesService.createCategory(createCategoryDTO);
+  }
 
-  
+  @Post('/:category/players/:_id')
+  async assignPlayerOnCategory(@Param() params: string[]): Promise<void> {
+    await this.categoriesService.assignPlayerOnCategory(
+      params
+    );
+  }
+
   @Get()
-  async getCategories(): Promise<Category[]>{
-    return await this.categoriesService.getCategories()
+  async getCategories(): Promise<Category[]> {
+    return await this.categoriesService.getCategories();
   }
 
   @Get('/:category')
-  async getACategory(@Param('category') category:string):Promise<Category>{
-    return await this.categoriesService.getACategory(category)
+  async getACategory(@Param('category') category: string): Promise<Category> {
+    return await this.categoriesService.getACategory(category);
   }
 
   @Put('/:category')
-  async updateACategory(@Param('category') category: string, @Body()updateCategoryDTO: UpdateCategoryDTO) : Promise<void>{
-    await this.categoriesService.updateACategory(category, updateCategoryDTO)
+  async updateACategory(
+    @Param('category') category: string,
+    @Body() updateCategoryDTO: UpdateCategoryDTO,
+  ): Promise<void> {
+    await this.categoriesService.updateACategory(category, updateCategoryDTO);
   }
-  
 }
