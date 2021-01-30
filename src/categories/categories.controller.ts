@@ -25,11 +25,10 @@ export class CategoriesController {
     return await this.categoriesService.createCategory(createCategoryDTO);
   }
 
+  @UsePipes(ValidationPipe)
   @Post('/:category/players/:_id')
   async assignPlayerOnCategory(@Param() params: string[]): Promise<void> {
-    await this.categoriesService.assignPlayerOnCategory(
-      params
-    );
+    await this.categoriesService.assignPlayerOnCategory(params);
   }
 
   @Get()
@@ -42,6 +41,7 @@ export class CategoriesController {
     return await this.categoriesService.getACategory(category);
   }
 
+  @UsePipes(ValidationPipe)
   @Put('/:category')
   async updateACategory(
     @Param('category') category: string,

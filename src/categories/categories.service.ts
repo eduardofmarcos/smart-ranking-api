@@ -24,11 +24,9 @@ export class CategoriesService {
     return await this.creatingCategory(createCategoryDTO);
   }
 
-  //Attributing a Player on a Category
+  //Assign a Player on a Category
   async assignPlayerOnCategory(params: string[]): Promise<void> {
-
-    return await this.assigningAPlayerOnACategory(params)
-    
+    return await this.assigningAPlayerOnACategory(params);
   }
 
   //Get Categories
@@ -68,7 +66,7 @@ export class CategoriesService {
   }
 
   //Assigning a player on a category
-  private async assigningAPlayerOnACategory(params: string[]):Promise<void>{
+  private async assigningAPlayerOnACategory(params: string[]): Promise<void> {
     const category: string = params['category'];
     const _id: string = params['_id'];
 
@@ -84,9 +82,21 @@ export class CategoriesService {
         'not possible to attribute the player to this category. Category does not exist.',
       );
     }
-    
+
+    //check if the player found is already register on the category to add
+    const isPlayerAlreadyOnCategory = await this.categoryModel
+      .find({ category: category })
+      .where('players')
+      .in(playerFound._id);
+
+    if (isPlayerAlreadyOnCategory.length > 0) {
+      throw new BadRequestException('this player is already registred');
+    }
+
+    //Add the player on category
     categoryToAddPlayer.players.push(playerFound._id);
 
+    //Update the category
     await this.categoryModel.findOneAndUpdate(
       { category: category },
       { $set: categoryToAddPlayer },
@@ -95,14 +105,16 @@ export class CategoriesService {
 
   //Getting categories
   private async gettingCategories(): Promise<Category[]> {
-    return await this.categoryModel.find({});
+    return await this.categoryModel.find({}).populate('players');
   }
 
   //Getting a category by category
   private async gettingACategory(category: string): Promise<Category> {
-    const categoryToFind = await this.categoryModel.findOne({
-      category: category,
-    });
+    const categoryToFind = await this.categoryModel
+      .findOne({
+        category: category,
+      })
+      .populate('players');
     if (!categoryToFind) {
       throw new NotFoundException('this category does not exist');
     }
