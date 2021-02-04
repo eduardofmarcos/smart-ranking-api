@@ -8,11 +8,14 @@ import { CategoriesService } from './../categories/categories.service';
 import { Category } from './../categories/interfaces/category.interface';
 import { ChallengeStatus } from './challenge-status.enum';
 import { UpdateChallengeDTO } from './dtos/update.challenge.dto';
+import { Match } from './interfaces/challenge.interface';
+import { AssignMatchToAChallengeDTO } from './matches/dtos/create-match.dto';
 
 @Injectable()
 export class ChallengesService {
   constructor(
     @InjectModel('Challenge') private readonly challengeModel: Model<Challenge>,
+    @InjectModel('Match') private readonly matchModel: Model<Match>,
     private readonly playersService: PlayersService,
     private readonly categoriesService: CategoriesService,
   ) {}
@@ -38,8 +41,17 @@ export class ChallengesService {
     await this.updatingAChallenge(_id, updateChallengeDTO);
   }
 
-  async deleteAChallenge(_id:string):Promise<void>{
-    await this.deletingAChallenge(_id)
+  async deleteAChallenge(_id: string): Promise<void> {
+    await this.deletingAChallenge(_id);
+  }
+
+  /************************************* Match Handlers ***************************************/
+
+  async updateAMatch(
+    _id: string,
+    assignMatchToAChallengeChallengeDTO: AssignMatchToAChallengeDTO,
+  ): Promise<void> {
+    return await this.updatingAMatch(_id, assignMatchToAChallengeChallengeDTO);
   }
 
   /********************************************************************************************/
@@ -68,7 +80,6 @@ export class ChallengesService {
     }
 
     //getting the requester category
-
     const categoryToReturn = await this.findingCategory(
       await this.categoriesService.getCategories(),
       createChallengeDTO,
@@ -81,7 +92,7 @@ export class ChallengesService {
       requester,
       players,
       status: ChallengeStatus.PENDING,
-      dateTimeRequest: new Date().toISOString(),
+      dateTimeRequest: new Date(),
       category: categoryToReturn,
     };
     const newChallenge = await new this.challengeModel(newObjectToSaveOnDB);
@@ -107,26 +118,80 @@ export class ChallengesService {
     _id: string,
     updateChallengeDTO: UpdateChallengeDTO,
   ): Promise<void> {
-    
-    const possibleStatus = [ChallengeStatus.ACCEPTED, ChallengeStatus.DENIED, ChallengeStatus.CANCELLED]
-    if (updateChallengeDTO.status && !possibleStatus.includes(updateChallengeDTO.status)){
-      throw new BadRequestException('for status: only accepted values: [ACCEPTED, DENIED, CANCELLED]')
+    const possibleStatus = [
+      ChallengeStatus.ACCEPTED,
+      ChallengeStatus.DENIED,
+      ChallengeStatus.CANCELLED,
+    ];
+    if (
+      updateChallengeDTO.status &&
+      !possibleStatus.includes(updateChallengeDTO.status)
+    ) {
+      throw new BadRequestException(
+        'for status: only accepted values: [ACCEPTED, DENIED, CANCELLED]',
+      );
     }
 
-    const isChallengeRegistred = await this.getAChallenge(_id)
-    if(!isChallengeRegistred){
-      throw new BadRequestException("this challenged is not on our database")
+    const isChallengeRegistred = await this.getAChallenge(_id);
+    if (!isChallengeRegistred) {
+      throw new BadRequestException('this challenged is not on our database');
     }
 
     await this.challengeModel.findOneAndUpdate(
       { _id: _id },
-      { $set: updateChallengeDTO },
+      { $set: updateChallengeDTO, dateTimeResponse: new Date() },
     );
   }
 
   //delete a challenge
-  private async deletingAChallenge(_id:string):Promise<void>{
-    await this.challengeModel.findByIdAndUpdate({_id:_id},{status:ChallengeStatus.CANCELLED})
+  private async deletingAChallenge(_id: string): Promise<void> {
+    await this.challengeModel.findByIdAndUpdate(
+      { _id: _id },
+      { status: ChallengeStatus.CANCELLED },
+    );
+  }
+
+  /***********************  Match Handlers - privates methods  ********************************/
+
+  private async updatingAMatch(
+    _id: string,
+    assignMatchToAChallengeDTO: AssignMatchToAChallengeDTO,
+  ): Promise<void> {
+    //creating a transaction
+    const session = await this.challengeModel.startSession();
+    session.startTransaction();
+
+    //Checking if challenge is registred on database
+    const isChallengeRegistred = await this.getAChallenge(_id);
+    if (!isChallengeRegistred) {
+      throw new BadRequestException('this challenged is not on our database');
+    }
+    //checking if the winner is in the match/challenge
+    // console.log(isChallengeRegistred);
+    const { players } = isChallengeRegistred;
+    if (
+      assignMatchToAChallengeDTO.def &&
+      !players.includes(assignMatchToAChallengeDTO.def)
+    ) {
+      throw new BadRequestException('the defeater is not in the match');
+    }
+
+    //saving new match
+    const newMatch = new this.matchModel(assignMatchToAChallengeDTO);
+    newMatch.category = isChallengeRegistred.Category
+    newMatch.players = isChallengeRegistred.players
+    newMatch.save();
+
+    //creating the new object to save on DB
+
+    //adding new match to the challenge
+    isChallengeRegistred.match.push(newMatch);
+    isChallengeRegistred.status = ChallengeStatus.FINISHED;
+    isChallengeRegistred.save();
+
+    //commit/ ending a transaction
+    await session.commitTransaction();
+    session.endSession();
   }
 
   /*********************************** Aux Methods ********************************************/
@@ -146,8 +211,7 @@ export class ChallengesService {
     return categoryFound[0];
   }
 
-  private async getAChallenge(_id:string): Promise<Challenge>{
-    return await this.challengeModel.findOne({_id:_id})
+  private async getAChallenge(_id: string): Promise<Challenge> {
+    return await this.challengeModel.findOne({ _id: _id });
   }
-
 }

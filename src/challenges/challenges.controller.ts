@@ -13,6 +13,7 @@ import { ChallengesService } from './challenges.service';
 import { CreateChallengeDTO } from './dtos/create.challenge.dto';
 import { UpdateChallengeDTO } from './dtos/update.challenge.dto';
 import { Challenge } from './interfaces/challenge.interface';
+import { AssignMatchToAChallengeDTO} from './matches/dtos/create-match.dto'
 
 @Controller('/api/v1/challenges')
 export class ChallengesController {
@@ -25,6 +26,7 @@ export class ChallengesController {
   ): Promise<Challenge> {
     return await this.challengeService.createChallenge(createChallengeDTO);
   }
+
 
   @Get()
   async getChallenges(): Promise<Challenge[]> {
@@ -42,6 +44,14 @@ export class ChallengesController {
   async updateAChallenge(@Param('_id') _id:string, @Body() updateChallengeDTO: UpdateChallengeDTO): Promise<void>{
     await this.challengeService.updateAChallenge(_id, updateChallengeDTO)
   }
+
+  @Put('matchs/:_id')
+  async updateAMatch(@Param('_id') _id:string,
+    @Body() assignMatchToAChallengeChallengeDTO: AssignMatchToAChallengeDTO,
+  ): Promise<void> {
+    await this.challengeService.updateAMatch(_id, assignMatchToAChallengeChallengeDTO);
+  }
+
 
   @Delete('/:_id')
   async deleteAChallenge(@Param('_id') _id:string):Promise<void>{

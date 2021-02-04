@@ -9,7 +9,7 @@ export interface Challenge extends Document {
   requester: Player;
   Category: String;
   players: Array<Player>;
-  match: Match;
+  match: Array<Match>;
 }
 
 export interface Match extends Document {

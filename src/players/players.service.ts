@@ -8,7 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { CreatePlayerDTO } from './dtos/create-player.dto';
 import { Player } from './interfaces/player.interface';
 import { UpdatePlayerDTO } from './dtos/update-player.dto';
-import { exec } from 'child_process';
+
 
 /********************************************************************************************/
 
